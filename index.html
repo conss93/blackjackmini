@@ -165,6 +165,7 @@
   }
 
   function getCardImage(card) {
+    const v = card.value === '10' ? '0' : card.value; // ← 이미지용만 바꿈
     return `https://deckofcardsapi.com/static/img/${card.value}${card.suit}.png`;
   }
 
