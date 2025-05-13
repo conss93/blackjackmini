@@ -148,163 +148,157 @@
     <button onclick="document.getElementById('howToPlayModal').style.display='none'">닫기</button>
   </div>
 
-  <!-- JavaScript 부분 생략 (기존 유지) -->
-  <!-- (생략된 상단 HTML 부분은 Canvas 코드와 동일) -->
-<!-- 바로 아래에 스크립트만 추가해 주세요 -->
+  <script>
+    const suits = ['H', 'D', 'S', 'C'];
+    const suitSymbols = { H: '♥', D: '♦', S: '♠', C: '♣' };
+    const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+    let deck = [], playerHand = [], dealerHand = [], gameOver = false, playerBlackjack = false;
 
-<script>
-  const suits = ['H', 'D', 'S', 'C'];
-  const suitSymbols = { H: '♥', D: '♦', S: '♠', C: '♣' };
-  const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  let deck = [], playerHand = [], dealerHand = [], gameOver = false, playerBlackjack = false;
-
-  function buildDeck() {
-    deck = [];
-    for (let s of suits) for (let v of values) deck.push({ value: v, suit: s });
-    deck.sort(() => Math.random() - 0.5);
-  }
-
-  function getCardImage(card) {
-    const v = card.value === '10' ? '0' : card.value; // ← 이미지용만 바꿈
-    return `https://deckofcardsapi.com/static/img/${card.value}${card.suit}.png`;
-  }
-
-  function renderHand(containerId, hand) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
-    for (let card of hand) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'card-wrapper';
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.style.backgroundImage = `url('${getCardImage(card)}')`;
-      const label = document.createElement('div');
-      label.className = 'card-label';
-      label.textContent = `${card.value} ${suitSymbols[card.suit]}`;
-      wrapper.appendChild(div);
-      wrapper.appendChild(label);
-      container.appendChild(wrapper);
+    function buildDeck() {
+      deck = [];
+      for (let s of suits) for (let v of values) deck.push({ value: v, suit: s });
+      deck.sort(() => Math.random() - 0.5);
     }
-  }
 
-  function calculatePoints(hand) {
-    let total = 0, aces = 0;
-    for (let card of hand) {
-      if (['J','Q','K'].includes(card.value)) total += 10;
-      else if (card.value === 'A') { total += 11; aces++; }
-      else total += parseInt(card.value);
+    function getCardImage(card) {
+      const v = card.value === '10' ? '0' : card.value;
+      return `https://deckofcardsapi.com/static/img/${v}${card.suit}.png`;
     }
-    while (total > 21 && aces > 0) { total -= 10; aces--; }
-    return total;
-  }
 
-  function updateScores() {
-    document.getElementById('playerScore').textContent = `점수: ${calculatePoints(playerHand)}`;
-    const showDealer = gameOver && (!playerBlackjack || dealerHand.length === 2);
-    document.getElementById('dealerScore').textContent = showDealer ? `점수: ${calculatePoints(dealerHand)}` : '';
-  }
+    function renderHand(containerId, hand) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      for (let card of hand) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card-wrapper';
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.backgroundImage = `url('${getCardImage(card)}')`;
+        const label = document.createElement('div');
+        label.className = 'card-label';
+        label.textContent = `${card.value} ${suitSymbols[card.suit]}`;
+        wrapper.appendChild(div);
+        wrapper.appendChild(label);
+        container.appendChild(wrapper);
+      }
+    }
 
-  function disableButtons(disabled) {
-    document.getElementById('hitBtn').disabled = disabled;
-    document.getElementById('standBtn').disabled = disabled;
-  }
+    function calculatePoints(hand) {
+      let total = 0, aces = 0;
+      for (let card of hand) {
+        if (['J','Q','K'].includes(card.value)) total += 10;
+        else if (card.value === 'A') { total += 11; aces++; }
+        else total += parseInt(card.value);
+      }
+      while (total > 21 && aces > 0) { total -= 10; aces--; }
+      return total;
+    }
 
-  function hit() {
-    if (gameOver) return;
-    playerHand.push(deck.pop());
-    renderHand('player', playerHand);
-    updateScores();
-    const score = calculatePoints(playerHand);
-    if (score > 21) {
-      revealDealer();
+    function updateScores() {
+      document.getElementById('playerScore').textContent = `점수: ${calculatePoints(playerHand)}`;
+      const showDealer = gameOver && (!playerBlackjack || dealerHand.length === 2);
+      document.getElementById('dealerScore').textContent = showDealer ? `점수: ${calculatePoints(dealerHand)}` : '';
+    }
+
+    function disableButtons(disabled) {
+      document.getElementById('hitBtn').disabled = disabled;
+      document.getElementById('standBtn').disabled = disabled;
+    }
+
+    function hit() {
+      if (gameOver) return;
+      playerHand.push(deck.pop());
+      renderHand('player', playerHand);
       updateScores();
-      endGame('플레이어 버스트! 패배 😭');
+      const score = calculatePoints(playerHand);
+      if (score > 21) {
+        revealDealer();
+        updateScores();
+        endGame('플레이어 버스트! 패배 😭');
+      }
     }
-  }
 
-  async function stand() {
-    if (gameOver) return;
-    revealDealer(); updateScores();
-    while (calculatePoints(dealerHand) < 17) {
-      dealerHand.push(deck.pop());
-      renderHand('dealer', dealerHand); updateScores();
-      await new Promise(r => setTimeout(r, 1000));
+    async function stand() {
+      if (gameOver) return;
+      revealDealer(); updateScores();
+      while (calculatePoints(dealerHand) < 17) {
+        dealerHand.push(deck.pop());
+        renderHand('dealer', dealerHand); updateScores();
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      const ps = calculatePoints(playerHand), ds = calculatePoints(dealerHand);
+      updateScores();
+      if (ds > 21 || ps > ds) endGame('플레이어 승리! 🎉');
+      else if (ds === ps) endGame('무승부 🤝');
+      else endGame('딜러 승리! 😬');
     }
-    const ps = calculatePoints(playerHand), ds = calculatePoints(dealerHand);
-    updateScores();
-    if (ds > 21 || ps > ds) endGame('플레이어 승리! 🎉');
-    else if (ds === ps) endGame('무승부 🤝');
-    else endGame('딜러 승리! 😬');
-  }
 
-  function revealDealer() {
-    renderHand('dealer', dealerHand);
-  }
+    function revealDealer() {
+      renderHand('dealer', dealerHand);
+    }
 
-  function endGame(msg) {
-    document.getElementById('result').textContent = msg;
-    gameOver = true;
-    disableButtons(true);
-    updateScores();
-  }
-
-  function checkDealerBlackjack() {
-    const fc = dealerHand[0];
-    if (['10','J','Q','K','A'].includes(fc.value)) {
-      document.getElementById('loading').textContent = '딜러 블랙잭 판별중...';
+    function endGame(msg) {
+      document.getElementById('result').textContent = msg;
+      gameOver = true;
       disableButtons(true);
-      setTimeout(() => {
-        renderHand('dealer', dealerHand);
-        const ds = calculatePoints(dealerHand);
-        if (ds === 21) endGame('딜러 블랙잭! 패배 😭');
-        else {
-          document.getElementById('loading').textContent = '';
-          disableButtons(false);
-          renderHand('dealer', dealerHand.slice(0, 1));
-        }
-      }, 1500);
+      updateScores();
     }
-  }
 
-  function restart() {
-    gameOver = false;
-    playerBlackjack = false;
-    document.getElementById('result').textContent = '';
-    document.getElementById('loading').textContent = '';
-    buildDeck();
-    playerHand = [deck.pop(), deck.pop()];
-    dealerHand = [deck.pop(), deck.pop()];
-    renderHand('player', playerHand);
-    renderHand('dealer', dealerHand.slice(0, 1));
-    disableButtons(false);
-    updateScores();
-
-    const playerScore = calculatePoints(playerHand);
-    if (playerScore === 21 && playerHand.length === 2) {
-      playerBlackjack = true;
-      const val = dealerHand[0].value;
-      if (["10", "J", "Q", "K", "A"].includes(val)) {
-        document.getElementById("loading").textContent = "딜러 블랙잭 판별중...";
+    function checkDealerBlackjack() {
+      const fc = dealerHand[0];
+      if (['10','J','Q','K','A'].includes(fc.value)) {
+        document.getElementById('loading').textContent = '딜러 블랙잭 판별중...';
         disableButtons(true);
         setTimeout(() => {
-          renderHand("dealer", dealerHand);
-          const dealerScore = calculatePoints(dealerHand);
-          updateScores();
-          document.getElementById("loading").textContent = "";
-          if (dealerScore === 21) endGame("무승부 🤝");
-          else endGame("플레이어 블랙잭! 승리 🎉");
+          renderHand('dealer', dealerHand);
+          const ds = calculatePoints(dealerHand);
+          if (ds === 21) endGame('딜러 블랙잭! 패배 😭');
+          else {
+            document.getElementById('loading').textContent = '';
+            disableButtons(false);
+            renderHand('dealer', dealerHand.slice(0, 1));
+          }
         }, 1500);
-      } else {
-        endGame("플레이어 블랙잭! 승리 🎉");
       }
-    } else {
-      checkDealerBlackjack();
     }
-  }
 
-  restart();
-</script>
+    function restart() {
+      gameOver = false;
+      playerBlackjack = false;
+      document.getElementById('result').textContent = '';
+      document.getElementById('loading').textContent = '';
+      buildDeck();
+      playerHand = [deck.pop(), deck.pop()];
+      dealerHand = [deck.pop(), deck.pop()];
+      renderHand('player', playerHand);
+      renderHand('dealer', dealerHand.slice(0, 1));
+      disableButtons(false);
+      updateScores();
 
-  
+      const playerScore = calculatePoints(playerHand);
+      if (playerScore === 21 && playerHand.length === 2) {
+        playerBlackjack = true;
+        const val = dealerHand[0].value;
+        if (["10", "J", "Q", "K", "A"].includes(val)) {
+          document.getElementById("loading").textContent = "딜러 블랙잭 판별중...";
+          disableButtons(true);
+          setTimeout(() => {
+            renderHand("dealer", dealerHand);
+            const dealerScore = calculatePoints(dealerHand);
+            updateScores();
+            document.getElementById("loading").textContent = "";
+            if (dealerScore === 21) endGame("무승부 🤝");
+            else endGame("플레이어 블랙잭! 승리 🎉");
+          }, 1500);
+        } else {
+          endGame("플레이어 블랙잭! 승리 🎉");
+        }
+      } else {
+        checkDealerBlackjack();
+      }
+    }
+
+    restart();
+  </script>
 </body>
 </html>
